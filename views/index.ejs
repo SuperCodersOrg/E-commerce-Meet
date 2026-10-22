@@ -37,10 +37,10 @@
     <main class="max-w-7xl mx-auto px-6 py-10">
         <h1 class="text-3xl font-bold mb-8 uppercase tracking-tight text-center">Featured Products</h1>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             <% if (items && items.length > 0) { %>
                 <% items.forEach(item => { %>
-                    <div class="border border-black p-4 flex flex-col justify-between hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all bg-white">
+                    <div class="border border-black p-4 flex flex-col justify-between hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all bg-white product-card data-id="<%= item._id %>">
                         <div>
                             <img src="<%= item.image %>" alt="<%= item.name %>" class="w-full h-48 object-cover mb-4 grayscale hover:grayscale-0 transition duration-300">
                             <h2 class="font-bold text-lg mb-1 truncate"><%= item.name %></h2>
@@ -83,18 +83,19 @@
         loadMoreBtn.addEventListener('click', async () => {
             const cards = document.querySelectorAll('.product-card');
             
-            // Safety check: Agar koi card hi nahi hai toh aage mat chalo
+        //    console.log("hiii");
             if (cards.length === 0) return;
 
             const lastCard = cards[cards.length - 1];
-            const lastId = lastCard ? lastCard.getAttribute('data-id') : null;
-
+    console.log(lastCard);
+            const lastId =  lastCard.getAttributeNames("data-Id");
+console.log(lastId[1].trim());
             if (!lastId) return;
 
             try {
                 loadMoreBtn.innerText = "Loading...";
-                const res = `http://localhost:3000/products?lastId=${lastId}`;
-                const resData = await fetch(`/api/products?lastId=${lastId}`);
+                console.log("lastid",lastId[1])
+                const resData = await fetch(`http://localhost:3000/products?lastId=${lastId[1].trim()}`);
                 const data = await resData.json();
 
                 if (data.success && data.items.length > 0) {
@@ -125,7 +126,7 @@
                         grid.appendChild(cardDiv);
                     });
 
-                    // Agar 5 se kam items aayein matlab aur products khatam ho gaye hain, toh button hata do
+         
                     if (data.items.length < 5) {
                         loadMoreBtn.remove();
                     } else {

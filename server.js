@@ -1,37 +1,41 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const cors = require('cors');
+const express = require("express");
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const cors = require("cors");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer"); 
-const User = require('./models/User'); 
-const Item = require('./models/Items');
-const connectDB = require('./config/mongo');
+const nodemailer = require("nodemailer");
+const User = require("./models/User");
+const Item = require("./models/Items");
+const connectDB = require("./config/mongo");
 const { isloggedIn } = require("./middleware/middleware.js");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
-const JWT_SECRET_TOKEN = process.env.JWT_SECRET_TOKEN || "mysecretkey"; 
+const JWT_SECRET_TOKEN = process.env.JWT_SECRET_TOKEN || "mysecretkey";
 connectDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(cookieParser()); 
-app.set('view engine', 'ejs');
+app.use(cookieParser());
+app.set("view engine", "ejs");
 
 const setToken = (user) => {
-    return jwt.sign({ username: user.username, gmail: user.gmail }, JWT_SECRET_TOKEN, { expiresIn: '1d' });
+  return jwt.sign(
+    { username: user.username, gmail: user.gmail },
+    JWT_SECRET_TOKEN,
+    { expiresIn: "1d" },
+  );
 };
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.USER,
-        pass: process.env.PASSWORD 
-    }
+  service: "gmail",
+  auth: {
+    user: process.env.USER,
+    pass: process.env.PASSWORD,
+  },
 });
 
 app.use((req, res, next) => {
@@ -39,7 +43,7 @@ app.use((req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET_TOKEN);
-      res.locals.user = decoded; 
+      res.locals.user = decoded;
     } catch (err) {
       res.locals.user = null;
     }
@@ -50,9 +54,9 @@ app.use((req, res, next) => {
 });
 app.get("/", async (req, res) => {
   try {
-   
     const items = await Item.find({}).limit(5);
-
+    let mainId = JSON.stringify(items[4]._id);
+    console.log(mainId);
     res.render("index.ejs", { items });
   } catch (error) {
     console.error(error);
@@ -60,28 +64,23 @@ app.get("/", async (req, res) => {
   }
 });
 
-
-
-
-
-
-
 app.get("/products", async (req, res) => {
   try {
+    console.log(req.query);
     const { lastId } = req.query;
+let mainid = JSON.stringify(lastId);
+console.log(mainid);
     let query = {};
 
-
     if (lastId) {
-      query = { _id: { $lt: lastId } }; 
+      query = { _id: { $lt: lastId } };
     }
 
-    const items = await Item.find(query)
-      .limit(5);
+    const items = await Item.find(query).limit(5);
 
     return res.status(200).json({
       success: true,
-      items
+      items,
     });
   } catch (error) {
     console.error(error);
@@ -89,11 +88,13 @@ app.get("/products", async (req, res) => {
   }
 });
 
-
-
-
-
-
+app.get("/item/:id", async (req, res) => {
+  try {
+    const itemId = req.params.id;
+    console.log("Product ID:", itemId);
+    console.log(req.params);
+  } catch (err) {}
+});
 
 app.get("/login", (req, res) => {
   res.render("login.ejs", { data: "entered" });
@@ -101,7 +102,6 @@ app.get("/login", (req, res) => {
 
 app.get("/cart", async (req, res) => {
   try {
-   
     const items = await Item.find({});
 
     res.render("cart.ejs", { items });
@@ -110,8 +110,6 @@ app.get("/cart", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
-
-
 
 app.get("/reset", (req, res) => {
   res.render("reset.ejs", { data: "entered" });
@@ -129,18 +127,16 @@ app.get("/profile", isloggedIn, (req, res) => {
   res.render("profile.ejs", { data: "entered" });
 });
 
-
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
       return res.status(400).json({
         success: false,
         message: "Please provide username and password.",
       });
     }
-
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -149,7 +145,6 @@ app.post("/login", async (req, res) => {
         message: "User not found.",
       });
     }
-
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -170,18 +165,16 @@ app.post("/login", async (req, res) => {
       success: true,
       message: "Login successful!",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-
 app.post("/forgot", async (req, res) => {
   try {
     const { username } = req.body;
-    
+
     if (!username) {
       return res.status(400).json({
         success: false,
@@ -189,22 +182,23 @@ app.post("/forgot", async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ $or: [{ gmail: username }, { username: username }] });
-    
+    const user = await User.findOne({
+      $or: [{ gmail: username }, { username: username }],
+    });
+
     if (!user) {
       return res.status(400).json({
         success: false,
         message: "User not found.",
       });
     }
-    
-    const resetLink = `http://localhost:${port}/reset`;
-    const token = setToken(user); 
 
-    
+    const resetLink = `http://localhost:${port}/reset`;
+    const token = setToken(user);
+
     res.cookie("token", token, {
       httpOnly: true,
-      maxAge: 15 * 60 * 1000, 
+      maxAge: 15 * 60 * 1000,
     });
 
     await transporter.sendMail({
@@ -221,7 +215,6 @@ app.post("/forgot", async (req, res) => {
       success: true,
       message: "Password reset link sent to your email!",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -230,14 +223,13 @@ app.post("/forgot", async (req, res) => {
 app.post("/signup", async (req, res) => {
   try {
     const { username, gmail, password } = req.body;
-    
+
     if (!username || !gmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Please provide all details.",
       });
     }
-
 
     const existingUser = await User.findOne({ $or: [{ username }, { gmail }] });
     if (existingUser) {
@@ -249,16 +241,14 @@ app.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-  
     const verificationToken = jwt.sign(
       { username, gmail, password: hashedPassword },
       JWT_SECRET_TOKEN,
-      { expiresIn: '15m' }
+      { expiresIn: "15m" },
     );
 
     const verifyLink = `http://localhost:${port}/verify?token=${verificationToken}`;
 
-    
     await transporter.sendMail({
       from: process.env.USER,
       to: gmail,
@@ -275,7 +265,6 @@ app.post("/signup", async (req, res) => {
       success: true,
       message: "Verification email sent! Please check your inbox.",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -285,12 +274,13 @@ app.post("/signup", async (req, res) => {
 app.post("/reset", async (req, res) => {
   try {
     const { newPassword } = req.body;
-    const token = req.cookies.token; 
+    const token = req.cookies.token;
 
     if (!token) {
       return res.status(400).json({
         success: false,
-        message: "Session expired or invalid request. Please try forgot password again.",
+        message:
+          "Session expired or invalid request. Please try forgot password again.",
       });
     }
 
@@ -301,7 +291,6 @@ app.post("/reset", async (req, res) => {
       });
     }
 
-    
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET_TOKEN);
@@ -312,14 +301,12 @@ app.post("/reset", async (req, res) => {
       });
     }
 
-
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-  
     const updatedUser = await User.findOneAndUpdate(
       { gmail: decoded.gmail },
       { password: hashedPassword },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedUser) {
@@ -329,14 +316,12 @@ app.post("/reset", async (req, res) => {
       });
     }
 
-   
     res.clearCookie("token");
 
     return res.status(200).json({
       success: true,
       message: "Password updated successfully! You can now login.",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -350,7 +335,6 @@ app.get("/verify", async (req, res) => {
       return res.status(400).send("Invalid verification link.");
     }
 
-   
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET_TOKEN);
@@ -360,20 +344,17 @@ app.get("/verify", async (req, res) => {
 
     const { username, gmail, password } = decoded;
 
-    
     const existingUser = await User.findOne({ $or: [{ username }, { gmail }] });
     if (existingUser) {
       return res.send("User already verified and registered! You can login.");
     }
 
- 
     const newUser = await User.create({
       username,
       gmail,
-      password
+      password,
     });
 
-   
     const authToken = setToken(newUser);
     console.log(authToken);
     res.cookie("token", authToken, {
@@ -381,9 +362,8 @@ app.get("/verify", async (req, res) => {
       maxAge: 24 * 1000 * 60 * 60,
     });
 
-  const items = await Item.find({}); 
-  return  res.render("index.ejs", { items }); 
-
+    const items = await Item.find({});
+    return res.render("index.ejs", { items });
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error during verification.");
@@ -393,7 +373,7 @@ app.get("/verify", async (req, res) => {
 app.get("/logout", async (req, res) => {
   try {
     res.clearCookie("token");
-    const items = await Item.find({}); 
+    const items = await Item.find({});
     res.render("index.ejs", { items });
   } catch (error) {
     console.error(error);
@@ -402,5 +382,5 @@ app.get("/logout", async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log("Server is live on port : ", port);
+  console.log("Server is live on port : ", port);
 });
