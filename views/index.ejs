@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopHigh</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-black font-sans antialiased">
+
+<header class="flex justify-between items-center px-8 py-5 border-b border-black bg-white">
+    <div class="text-2xl font-black tracking-wider uppercase">
+        <a href="/">ShopHigh</a>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+    
+        <a href="/cart" class="px-4 py-2 border border-black text-black hover:bg-black hover:text-white transition uppercase text-sm font-semibold flex items-center gap-1">
+             Cart
+        </a>
+
+      
+        <% if (user) { %>
+       
+            <span class="font-bold text-gray-800 text-sm">👤 <%= user.username %></span>
+            <a href="/logout" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 transition uppercase text-sm font-semibold rounded-md">Logout</a>
+        <% } else { %>
+
+            <a href="/login" class="px-4 py-2 border border-black text-black hover:bg-black hover:text-white transition uppercase text-sm font-semibold">Login</a>
+            <a href="/signup" class="px-4 py-2 bg-black text-white hover:bg-gray-800 transition uppercase text-sm font-semibold">Signup</a>
+        <% } %>
+    </div>
+</header>
+
+
+    <main class="max-w-7xl mx-auto px-6 py-10">
+        <h1 class="text-3xl font-bold mb-8 uppercase tracking-tight text-center">Featured Products</h1>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <% if (items && items.length > 0) { %>
+                <% items.forEach(item => { %>
+                    <div class="border border-black p-4 flex flex-col justify-between hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all bg-white">
+                        <div>
+                            <img src="<%= item.image %>" alt="<%= item.name %>" class="w-full h-48 object-cover mb-4 grayscale hover:grayscale-0 transition duration-300">
+                            <h2 class="font-bold text-lg mb-1 truncate"><%= item.name %></h2>
+                            <p class="text-gray-600 text-sm mb-3 line-clamp-2"><%= item.description %></p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="font-extrabold text-lg">₹<%= item.price %></span>
+                                <span class="text-xs uppercase bg-black text-white px-2 py-1">Stock: <%= item.stock %></span>
+                            </div>
+                            
+                            
+                            <div class="flex gap-2">
+                                <button class="flex-1 bg-black text-white py-2 font-semibold uppercase text-xs hover:bg-gray-800 transition">Add to Cart</button>
+                                <a href="/item/<%= item._id %>" class="flex-1 border border-black text-black py-2 text-center font-semibold uppercase text-xs hover:bg-black hover:text-white transition flex items-center justify-center">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p class="col-span-full text-center text-gray-500 py-10">No products available right now.</p>
+            <% } %>
+        </div>
+    </main>
+<% if (items && items.length === 5) { %>
+    <div class="text-center mt-12">
+        <button id="load-more-btn" class="px-6 py-3 bg-black text-white font-bold uppercase text-sm hover:bg-gray-800 transition rounded">
+            View More Products
+        </button>
+    </div>
+<% } %>
+
+
+
+
+
+<script>
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', async () => {
+            const cards = document.querySelectorAll('.product-card');
+            
+            // Safety check: Agar koi card hi nahi hai toh aage mat chalo
+            if (cards.length === 0) return;
+
+            const lastCard = cards[cards.length - 1];
+            const lastId = lastCard ? lastCard.getAttribute('data-id') : null;
+
+            if (!lastId) return;
+
+            try {
+                loadMoreBtn.innerText = "Loading...";
+                const res = `http://localhost:3000/products?lastId=${lastId}`;
+                const resData = await fetch(`/api/products?lastId=${lastId}`);
+                const data = await resData.json();
+
+                if (data.success && data.items.length > 0) {
+                    const grid = document.getElementById('products-grid');
+                    
+                    data.items.forEach(item => {
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = "border border-black p-4 flex flex-col justify-between hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all bg-white product-card";
+                        cardDiv.setAttribute('data-id', item._id);
+                        
+                        cardDiv.innerHTML = `
+                            <div>
+                                <img src="${item.image}" alt="${item.name}" class="w-full h-48 object-cover mb-4 grayscale hover:grayscale-0 transition duration-300">
+                                <h2 class="font-bold text-lg mb-1 truncate">${item.name}</h2>
+                                <p class="text-gray-600 text-sm mb-3 line-clamp-2">${item.description}</p>
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <span class="font-extrabold text-lg">₹${item.price}</span>
+                                    <span class="text-xs uppercase bg-black text-white px-2 py-1">Stock: ${item.stock}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="flex-1 bg-black text-white py-2 font-semibold uppercase text-xs hover:bg-gray-800 transition">Add to Cart</button>
+                                    <a href="/item/${item._id}" class="flex-1 border border-black text-black py-2 text-center font-semibold uppercase text-xs hover:bg-black hover:text-white transition flex items-center justify-center">View Details</a>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(cardDiv);
+                    });
+
+                    // Agar 5 se kam items aayein matlab aur products khatam ho gaye hain, toh button hata do
+                    if (data.items.length < 5) {
+                        loadMoreBtn.remove();
+                    } else {
+                        loadMoreBtn.innerText = "View More Products";
+                    }
+                } else {
+                    loadMoreBtn.remove();
+                }
+            } catch (err) {
+                console.error("Error loading more products:", err);
+                loadMoreBtn.innerText = "View More Products";
+            }
+        });
+    }
+</script>
+
+
+
+    <footer class="text-center py-6 border-t border-black mt-16 text-sm uppercase font-semibold">
+        &copy; 2026 ShopHigh. All Rights Reserved.
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password</title>
+</head>
+<body>
+    <h2>Forgot Password</h2>
+    
+   
+    <form id="forgotForm">
+        <input type="text" id="username" name="username" placeholder="Enter your username or email" required />
+        <button type="submit" id="submitBtn">Send</button>
+    </form>
+
+    <br>
+    <a href="/login">Back to Login</a>
+
+    <script>
+        const forgotForm = document.getElementById('forgotForm');
+        const usernameInput = document.getElementById('username');
+
+        forgotForm.addEventListener('submit', (e) => {
+            e.preventDefault(); 
+
+            const cred = {
+                username: usernameInput.value.trim() 
+            };
+
+            console.log("Sending data:", cred);
+
+            fetch("http://localhost:3000/forgot", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cred),
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                console.log("Server Response:", data);
+                if (data.success) {
+                    alert(data.message); 
+                    window.location.href = "/login"; 
+                } else {
+                    alert(data.message); 
+                }
+            })
+            // .catch((err) => console.error("Error:", err));
+        });
+    </script>
+</body>
+</html>
+
+<%- include('../partials/footer') %>

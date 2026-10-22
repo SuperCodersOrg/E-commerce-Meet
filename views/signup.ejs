@@ -1,0 +1,94 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup - ShopHigh</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-black font-sans antialiased flex flex-col min-h-screen">
+
+   
+    <main class="flex-grow flex items-center justify-center px-4 py-12">
+        <div class="w-full max-w-md border border-black p-8 bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            
+            <h1 class="text-2xl font-black uppercase tracking-wider mb-6 text-center">Create Account</h1>
+            
+            <form id="signupform" class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase font-bold mb-1" for="username">Username</label>
+                    <input type="text" id="username" placeholder="Choose a username" required
+                        class="w-full border border-black px-3 py-2 focus:outline-none focus:ring-1 focus:ring-black text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs uppercase font-bold mb-1" for="gmail">Gmail</label>
+                    <input type="email" id="gmail" placeholder="Enter your email" required
+                        class="w-full border border-black px-3 py-2 focus:outline-none focus:ring-1 focus:ring-black text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs uppercase font-bold mb-1" for="password">Password</label>
+                    <input type="password" id="password" placeholder="Create a password" required
+                        class="w-full border border-black px-3 py-2 focus:outline-none focus:ring-1 focus:ring-black text-sm">
+                </div>
+
+                <button type="submit" 
+                    class="w-full bg-black text-white py-2 font-bold uppercase text-sm hover:bg-gray-800 transition">
+                    Register
+                </button>
+            </form>
+
+       
+            <div class="flex justify-between items-center mt-6 text-xs uppercase font-semibold">
+                <a href="/login" class="hover:underline">Already have an account? Login</a>
+            </div>
+
+            <div class="text-center mt-4 border-t border-gray-200 pt-4">
+                <a href="/" class="text-xs uppercase font-bold hover:underline text-gray-600">← Back to Home</a>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const signupForm = document.getElementById('signupform');
+
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const gmail = document.getElementById('gmail').value;
+
+            const cred = {
+                username: username,
+                gmail: gmail,
+                password: password
+            };
+
+            console.log("Sending data:", cred);
+
+            fetch('http://localhost:3000/signup', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cred)
+            })
+            .then((res) => res.json())
+            .then((data) => {
+                console.log(data);
+                if (data.success) {
+                    alert(data.message); // Email verification link message show karega
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((err) => console.error("Error:", err));
+        });
+    </script>
+</body>
+</html>
+
+<%- include('../partials/footer') %>
