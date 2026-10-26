@@ -1,16 +1,21 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
 const cors = require("cors");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const User = require("./models/User");
+const CartItemUser = require("./models/CartItems");
+const Address = require("./models/Address");
 const Item = require("./models/Items");
 const connectDB = require("./config/mongo");
 const { isloggedIn } = require("./middleware/middleware.js");
 const bcrypt = require("bcrypt");
+const CartItems = require("./models/CartItems");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
@@ -52,6 +57,10 @@ app.use((req, res, next) => {
   }
   next();
 });
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,     
+  key_secret: process.env.RAZORPAY_KEY_SECRET 
+});
 app.get("/", async (req, res) => {
   try {
     const items = await Item.find({}).limit(5);
@@ -73,7 +82,7 @@ console.log(mainid);
     let query = {};
 
     if (lastId) {
-      query = { _id: { $lt: lastId } };
+      query = { _id: { $gt: lastId } };
     }
 
     const items = await Item.find(query).limit(5);
@@ -91,28 +100,58 @@ console.log(mainid);
 app.get("/item/:id", async (req, res) => {
   try {
     const itemId = req.params.id;
-    console.log("Product ID:", itemId);
-    console.log(req.params);
-  } catch (err) {}
+    
+   
+    const item = await Item.findById(itemId);
+
+    if (!item) {
+      return res.status(404).send("Product not found");
+    }
+
+   
+    res.render("item.ejs", { item }); 
+  } catch (err) {
+    console.log("Error fetching product:", err);
+    res.status(500).send("Server Error");
+  }
 });
 
 app.get("/login", (req, res) => {
   res.render("login.ejs", { data: "entered" });
 });
 
-app.get("/cart", async (req, res) => {
-  try {
-    const items = await Item.find({});
 
-    res.render("cart.ejs", { items });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Server Error");
-  }
+
+ 
+app.get("/cart", (req, res) => {
+    res.render("cart.ejs", { user: res.locals.user || null });
+});
+
+
+app.post("/cart-items", async (req, res) => {
+    try {
+        const { itemIds } = req.body;
+        
+        if (!itemIds || itemIds.length === 0) {
+            return res.json({ success: true, products: [] });
+        }
+
+    
+        const products = await Item.find({ _id: { $in: itemIds } });
+        res.json({ success: true, products });
+
+    } catch (err) {
+        console.log("Error:", err);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
 });
 
 app.get("/reset", (req, res) => {
   res.render("reset.ejs", { data: "entered" });
+});
+
+app.get("/placeOrder", (req, res) => {
+  res.render("order.ejs", { data: "entered" });
 });
 
 app.get("/forgot", (req, res) => {
@@ -145,7 +184,7 @@ app.post("/login", async (req, res) => {
         message: "User not found.",
       });
     }
-
+console.log(user._id);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -210,6 +249,7 @@ app.post("/forgot", async (req, res) => {
         <a href="${resetLink}">Click here to reset your password</a>
       `,
     });
+    console.log("forgot",token);
 
     return res.status(200).json({
       success: true,
@@ -283,6 +323,7 @@ app.post("/reset", async (req, res) => {
           "Session expired or invalid request. Please try forgot password again.",
       });
     }
+    console.log("verify",token);
 
     if (!newPassword) {
       return res.status(400).json({
@@ -354,7 +395,13 @@ app.get("/verify", async (req, res) => {
       gmail,
       password,
     });
-
+const user = await User.findOne({ username });
+// const arr = [];
+//  const uId = user._id;
+// await CartItems.create({
+//      uId,
+//      arr,
+//     });
     const authToken = setToken(newUser);
     console.log(authToken);
     res.cookie("token", authToken, {
@@ -373,6 +420,7 @@ app.get("/verify", async (req, res) => {
 app.get("/logout", async (req, res) => {
   try {
     res.clearCookie("token");
+    console.log(res.cookie)
     const items = await Item.find({});
     res.render("index.ejs", { items });
   } catch (error) {

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - ShopHigh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="bg-white text-black font-sans antialiased flex flex-col min-h-screen">
+
+    <header class="flex justify-between items-center px-8 py-5 border-b border-black bg-white">
+        <div class="text-2xl font-black tracking-wider uppercase">
+            <a href="/">ShopHigh</a>
+        </div>
+        <div>
+            <a href="/cart" class="px-4 py-2 border border-black text-black hover:bg-black hover:text-white transition uppercase text-sm font-semibold">Back to Cart</a>
+        </div>
+    </header>
+
+    <% if (typeof user !== 'undefined' && user !== null) { %>
+       
+        <main class="flex-grow max-w-6xl mx-auto px-6 py-10 w-full">
+            <h1 class="text-3xl font-black mb-8 uppercase tracking-tight text-center">Checkout & Shipping</h1>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+                
+                
+                <div class="border border-black p-6 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <h2 class="text-xl font-black uppercase mb-6 border-b border-black pb-2">Shipping Address</h2>
+                    
+                    <form id="order-form" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase mb-1">Full Name</label>
+                            <input type="text" required class="w-full border border-black p-3 text-sm focus:outline-none focus:bg-gray-50" placeholder="Enter your name">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase mb-1">Phone Number</label>
+                            <input type="tel" required class="w-full border border-black p-3 text-sm focus:outline-none focus:bg-gray-50" placeholder="Enter phone number">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase mb-1">Street Address</label>
+                            <textarea required rows="2" class="w-full border border-black p-3 text-sm focus:outline-none focus:bg-gray-50" placeholder="House no., Street, Area"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase mb-1">City</label>
+                                <input type="text" required class="w-full border border-black p-3 text-sm focus:outline-none focus:bg-gray-50" placeholder="City">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase mb-1">Pincode</label>
+                                <input type="text" required class="w-full border border-black p-3 text-sm focus:outline-none focus:bg-gray-50" placeholder="Pincode">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+    
+                <div class="border border-black p-6 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <h2 class="text-xl font-black uppercase mb-6 border-b border-black pb-2">Order Summary</h2>
+
+                    <div id="bill-items-container" class="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+                        <p class="text-gray-500 text-sm">Loading summary...</p>
+                    </div>
+
+                    <div class="border-t border-black pt-4 space-y-2 mb-6">
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Subtotal</span>
+                            <span id="bill-subtotal">₹0</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Shipping</span>
+                            <span>FREE</span>
+                        </div>
+                         <div class="flex justify-between text-sm font-semibold">
+                            <span>GST</span>
+                            <span> no</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-black border-t border-black pt-2">
+                            <span>Total Amount</span>
+                            <span id="bill-total">₹0</span>
+                        </div>
+                    </div>
+
+                    <button id="confirm-order-btn" class="w-full bg-black text-white py-3 font-bold uppercase text-sm hover:bg-gray-800 transition shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        Confirm & Place Order
+                    </button>
+                </div>
+
+            </div>
+        </main>
+
+      
+        <footer class="text-center py-6 border-t border-black text-sm uppercase font-semibold bg-white mt-auto">
+            &copy; 2026 ShopHigh. All Rights Reserved.
+        </footer>
+
+        <script>
+            let grandTotal;
+            async function loadBillSummary() {
+                const cart = JSON.parse(localStorage.getItem("cart")) || [];
+                const container = document.getElementById('bill-items-container');
+                const subtotalEl = document.getElementById('bill-subtotal');
+                const totalEl = document.getElementById('bill-total');
+
+                if (cart.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm">No items in cart.</p>';
+                    return;
+                }
+
+                const itemIds = cart.map(item => item.itemId);
+
+                try {
+                    const response = await fetch('http://localhost:3000/cart-items', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemIds })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.products.length > 0) {
+                        let html = '';
+                         grandTotal = 0;
+
+                        data.products.forEach(product => {
+                            const cartItem = cart.find(c => c.itemId === product._id.toString());
+                            const quantity = cartItem ? cartItem.quantity : 1;
+                            const itemTotal = product.price * quantity;
+                            grandTotal += itemTotal;
+
+                            html += `
+                                <div class="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
+                                    <div>
+                                        <span class="font-bold">${product.name}</span>
+                                        <span class="text-xs text-gray-500 block">Qty: ${quantity}</span>
+                                    </div>
+                                    <span class="font-extrabold">₹${itemTotal}</span>
+                                </div>
+                            `;
+                        });
+
+                        container.innerHTML = html;
+                        subtotalEl.innerText = `₹${grandTotal}`;
+                        totalEl.innerText = `₹${grandTotal}`;
+                    } else {
+                        container.innerHTML = '<p class="text-gray-500 text-sm">Cart is empty.</p>';
+                    }
+                } catch (err) {
+                    console.error("Error loading bill:", err);
+                    container.innerHTML = '<p class="text-red-500 text-sm">Failed to load order summary.</p>';
+                }
+            }
+
+         
+            document.getElementById('confirm-order-btn').addEventListener('click', async () => {
+                const form = document.getElementById('order-form');
+                if (!form.checkValidity()) {
+                    alert("Please fill in all the shipping address details.");
+                    form.reportValidity();
+                    return;
+                }
+const totalAmount = grandTotal;
+ try {
+       
+        const res = await fetch('/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: totalAmount })
+        });
+        const orderData = await res.json();
+
+        if (!orderData.success) {
+          alert('Failed to initiate order.');
+          return;
+        }
+
+    
+        const options = {
+          "key": orderData.key_id, 
+          "amount": orderData.amount, 
+          "currency": orderData.currency,
+          "name": "ShopHigh",
+          "description": "Purchase Payment",
+          "order_id": orderData.order_id, 
+          
+          // Handler function called after user completes payment
+          "handler": async function (response) {
+            // Step 3: Send verification payload to backend
+            const verifyRes = await fetch('/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              alert("Payment Successful! Order Placed.");
+              window.location.href = "/";
+            } else {
+              alert("Payment Verification Failed!");
+            }
+          },
+          "prefill": {
+            "name": "Customer Name",
+            "email": "customer@example.com",
+            "contact": "9999999999"
+          },
+          "theme": {
+            "color": "#000000" // Customizes popup accent color
+          }
+        };
+
+        // Step 4: Open Razorpay Modal
+        const rzp1 = new Razorpay(options);
+        
+        rzp1.on('payment.failed', function (response){
+          alert("Payment Failed: " + response.error.description);
+        });
+
+        rzp1.open();
+
+      } catch (err) {
+        console.error("Payment error:", err);
+      }
+                alert("Order Placed Successfully!");
+                localStorage.removeItem("cart");
+                window.location.href = "/";
+            });
+
+            loadBillSummary();
+        </script>
+    <% } else { %>
+        <div class="flex-grow flex items-center justify-center">
+            <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-gray-800 text-center py-8 uppercase">
+                Please <a href="/login" class="text-black underline hover:bg-black hover:text-white px-2 py-1 transition">login</a> to checkout
+            </h2>
+        </div>
+    <% } %>
+</body>
+</html>
