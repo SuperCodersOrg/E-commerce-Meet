@@ -73,6 +73,57 @@ app.get("/", async (req, res) => {
   }
 });
 
+
+app.post("/create-order", async (req, res) => {
+  try {
+    const { amount } = req.body; 
+
+    const options = {
+      amount: amount * 100, 
+      currency: "INR",
+      receipt: `receipt_order_${Date.now()}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    res.json({
+      success: true,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key_id: process.env.RAZORPAY_KEY_ID
+    });
+  } catch (error) {
+    console.error("Order creation error:", error);
+    res.status(500).json({ success: false, message: "Could not create order" });
+  }
+});
+
+
+app.post("/verify-payment", (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+
+    if (expectedSignature === razorpay_signature) {
+
+      console.log("Payment Verified Successfully for Order:", razorpay_order_id);
+      
+      return res.json({ success: true, message: "Payment verified successfully!" });
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid signature verification" });
+    }} catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).json({ success: false, message: "Payment verification failed" });
+  }
+});
 app.get("/products", async (req, res) => {
   try {
     console.log(req.query);
@@ -323,6 +374,57 @@ app.post("/reset", async (req, res) => {
           "Session expired or invalid request. Please try forgot password again.",
       });
     }
+    console.log("verify",token);
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a new password.",
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET_TOKEN);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: "Token expired or invalid.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const updatedUser = await User.findOneAndUpdate(
+      { gmail: decoded.gmail },
+      { password: hashedPassword },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found in database.",
+      });
+    }
+
+    res.clearCookie("token");
+
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully! You can now login.",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+app.post("/address", async (req, res) => {
+  try {
+    const { shipPhone,shipName ,shipAddress,shipCity,shipPincode } = req.body;
+   console.log(req.body);
+
+   
     console.log("verify",token);
 
     if (!newPassword) {
