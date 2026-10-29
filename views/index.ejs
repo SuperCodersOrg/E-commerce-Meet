@@ -19,6 +19,10 @@
         </a>
       
         <% if (typeof user !== 'undefined' && user) { %>
+             <a type="submit" id="Addmore"  href = "/Addmore"
+            class="w-full bg-black text-white py-2 font-bold uppercase text-sm hover:bg-gray-800 transition">
+            Add products
+        </a>
             <span class="font-bold text-gray-800 text-sm">👤 <%= user.username %></span>
             <a href="/logout" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 transition uppercase text-sm font-semibold rounded-md">Logout</a>
         <% } else { %>

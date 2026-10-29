@@ -5,6 +5,7 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const cors = require("cors");
 const path = require("path");
+const multer = require('multer');
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
@@ -419,56 +420,35 @@ app.post("/reset", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+app.get("/Addmore",(req,res)=>{
+    res.render("Addmore.ejs", { data: "entered" });
+})
+app.post("/Addmore", async (req,res)=>{
+   const { name, description, price, category, stock ,image} = req.body;
+   console.log(req.body);
+   const dummyItems = req.body;
+       await Item.insertMany(dummyItems);
+    
+
+       res.redirect("/");
+})
 app.post("/address", async (req, res) => {
   try {
     const { shipPhone,shipName ,shipAddress,shipCity,shipPincode } = req.body;
    console.log(req.body);
 
    
-    console.log("verify",token);
+   
 
-    if (!newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a new password.",
-      });
-    }
 
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET_TOKEN);
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        message: "Token expired or invalid.",
-      });
-    }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
 
-    const updatedUser = await User.findOneAndUpdate(
-      { gmail: decoded.gmail },
-      { password: hashedPassword },
-      { new: true },
-    );
+  }catch(err)
+{
 
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found in database.",
-      });
-    }
-
-    res.clearCookie("token");
-
-    return res.status(200).json({
-      success: true,
-      message: "Password updated successfully! You can now login.",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
+}
 });
 app.get("/verify", async (req, res) => {
   try {

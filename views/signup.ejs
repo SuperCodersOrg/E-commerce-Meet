@@ -34,6 +34,7 @@
                     <input type="password" id="password" placeholder="Create a password" required
                         class="w-full border border-black px-3 py-2 focus:outline-none focus:ring-1 focus:ring-black text-sm">
                 </div>
+                
 
                 <button type="submit" 
                     class="w-full bg-black text-white py-2 font-bold uppercase text-sm hover:bg-gray-800 transition">
@@ -80,7 +81,7 @@
             .then((data) => {
                 console.log(data);
                 if (data.success) {
-                    alert(data.message); // Email verification link message show karega
+                    alert(data.message); 
                 } else {
                     alert(data.message);
                 }
